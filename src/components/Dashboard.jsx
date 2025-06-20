@@ -15,7 +15,7 @@ const botReplies = [
   "Let me know if you have any questions!"
 ];
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = ({ onLogout, user }) => {
   const [messages, setMessages] = useState(initialMessages);
   const [newMessage, setNewMessage] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -80,13 +80,13 @@ const Dashboard = ({ onLogout }) => {
             className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white font-bold text-lg shadow-lg border-2 border-white hover:ring-2 hover:ring-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-300 transition"
             title="User profile"
           >
-            <span>U</span>
+            <span>{user?.first_name ? user.first_name[0].toUpperCase() : 'U'}</span>
           </button>
           {showProfileMenu && (
             <div className="absolute right-0 mt-3 w-48 bg-white rounded-xl shadow-2xl py-2 z-20 border border-gray-100 animate-fade-in">
               <div className="px-4 py-3 text-gray-700 text-sm font-semibold border-b flex items-center gap-2">
-                <span className="inline-block w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">U</span>
-                user@gmail.com
+                <span className="inline-block w-7 h-7 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">{user?.first_name ? user.first_name[0].toUpperCase() : 'U'}</span>
+                {user?.email || 'user@gmail.com'}
               </div>
               <button
                 onClick={onLogout}

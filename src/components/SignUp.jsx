@@ -10,7 +10,7 @@ const SignUp = ({ onSignUp, onSwitchToLogin, onSwitchToWelcome }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     // Simulate sign up validation
@@ -22,29 +22,38 @@ const SignUp = ({ onSignUp, onSwitchToLogin, onSwitchToWelcome }) => {
       setError('Passwords do not match.');
       return;
     }
-    // Save data as file
     const userData = {
-      firstName,
-      lastName,
+      first_name: firstName,
+      last_name: lastName,
       email,
-      password,
-      confirmPassword
+      password
     };
-    // Store user credentials in localStorage
-    localStorage.setItem('user', JSON.stringify({ email, password }));
-    const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'user.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    // Show success alert
-    alert('Registration successful!');
-    // Simulate successful sign up
-    onSignUp();
+    try {
+      const response = await fetch('http://localhost:9000/chat/users/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify(userData),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message || 'Registration failed.');
+        return;
+      }
+      // Show success alert
+      alert('Registration successful!');
+      let userInfo;
+      try {
+        userInfo = await response.json();
+      } catch {
+        userInfo = { first_name: firstName, email };
+      }
+      onSignUp(userInfo);
+    } catch (err) {
+      setError('Network error. Please try again later.');
+    }
   };
 
   return (

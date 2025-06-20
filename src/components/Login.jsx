@@ -6,21 +6,28 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    
-    // Check credentials
-    if (email === 'user@gmail.com' && password === 'user123') {
-      onLogin();
-    } else {
-      // Check localStorage for registered user
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (storedUser && email === storedUser.email && password === storedUser.password) {
-        onLogin();
-      } else {
-        setError('Invalid email or password. Please use your registered credentials or user@gmail.com / user123');
+    try {
+      const response = await fetch('http://localhost:9000/chat/users/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        setError(errorData.message || 'Invalid email or password.');
+        return;
       }
+      // Login successful, get user info
+      const userInfo = await response.json();
+      onLogin(userInfo);
+    } catch (err) {
+      setError('Network error. Please try again later.');
     }
   };
 

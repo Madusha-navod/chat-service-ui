@@ -7,13 +7,16 @@ import Welcome from './components/Welcome';
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [authPage, setAuthPage] = useState('welcome'); // 'welcome', 'login', 'signup'
+  const [user, setUser] = useState(null); // Store user info
 
-  const handleLogin = () => {
+  const handleLogin = (userInfo) => {
+    setUser(userInfo);
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setUser(null);
     setAuthPage('welcome');
   };
 
@@ -25,7 +28,8 @@ function App() {
     setAuthPage('login');
   };
 
-  const handleSignUp = () => {
+  const handleSignUp = (userInfo) => {
+    setUser(userInfo);
     setAuthPage('login');
   };
 
@@ -36,7 +40,7 @@ function App() {
   return (
     <div>
       {isLoggedIn ? (
-        <Dashboard onLogout={handleLogout} />
+        <Dashboard onLogout={handleLogout} user={user} />
       ) : authPage === 'welcome' ? (
         <Welcome onLoginClick={handleSwitchToLogin} onSignUpClick={handleSwitchToSignUp} />
       ) : authPage === 'login' ? (
