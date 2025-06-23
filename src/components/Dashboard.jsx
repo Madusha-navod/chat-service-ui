@@ -3,18 +3,7 @@ import { SOCKET_URL } from '../constants';
 import { io } from 'socket.io-client';
 
 const initialMessages = [
-  { id: 1, text: "Welcome to the group chat!", sender: "System", time: "10:00 AM", self: false },
-  { id: 2, text: "Hello everyone!", sender: "John", time: "10:01 AM", self: false },
-  { id: 3, text: "All good here!", sender: "Sarah", time: "10:03 AM", self: false },
-  { id: 4, text: "Hi there! How is everyone doing?", sender: "You", time: "10:02 AM", self: true },
-];
-
-const botReplies = [
-  "That's interesting! Tell me more.",
-  "How can I help you today?",
-  "I'm here to chat!",
-  "Can you elaborate on that?",
-  "Let me know if you have any questions!"
+  { id: 1, text: "Welcome to the group chat!", sender: "System", time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), self: false }
 ];
 
 const Dashboard = ({ onLogout, user }) => {
@@ -24,7 +13,7 @@ const Dashboard = ({ onLogout, user }) => {
   const profileMenuRef = useRef(null);
   const messagesEndRef = useRef(null);
   const socketRef = useRef(null);
-  const [chatSettings, setChatSettings] = useState(() => {
+  const [chatSettings] = useState(() => {
     return (
       JSON.parse(localStorage.getItem('chatSettings')) || { room: '', language: '', languageName: '' }
     );
