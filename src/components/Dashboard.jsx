@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { SOCKET_URL } from '../constants';
+import { io } from 'socket.io-client';
 
 const initialMessages = [
   { id: 1, text: "Welcome to the group chat!", sender: "System", time: "10:00 AM", self: false },
@@ -21,6 +23,39 @@ const Dashboard = ({ onLogout, user }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const profileMenuRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
+  const [chatSettings, setChatSettings] = useState(() => {
+    return (
+      JSON.parse(localStorage.getItem('chatSettings')) || { room: '', language: '', languageName: '' }
+    );
+  });
+
+  useEffect(() => {
+    const settings = JSON.parse(localStorage.getItem('chatSettings'));
+    if (settings) {
+      // Connect to socket server
+      socketRef.current = io(SOCKET_URL);
+      socketRef.current.emit('joinRoom', { room: settings.room, language: settings.language });
+      // Listen for new messages
+      socketRef.current.on('newMessage', (data) => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            text: data.message,
+            sender: data.sender,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            self: false
+          }
+        ]);
+      });
+    }
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -54,17 +89,11 @@ const Dashboard = ({ onLogout, user }) => {
       };
       setMessages(prev => [...prev, userMsg]);
       setNewMessage('');
-      setTimeout(() => {
-        const botText = botReplies[Math.floor(Math.random() * botReplies.length)];
-        const botMsg = {
-          id: userMsg.id + 1,
-          text: botText,
-          sender: 'Bot',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          self: false
-        };
-        setMessages(prev => [...prev, botMsg]);
-      }, 1000);
+      // Emit to server
+      const settings = JSON.parse(localStorage.getItem('chatSettings'));
+      if (socketRef.current && settings) {
+        socketRef.current.emit('sendMessage', { room: settings.room, message: newMessage, language: settings.language });
+      }
     }
   };
 
@@ -97,6 +126,11 @@ const Dashboard = ({ onLogout, user }) => {
             </div>
           )}
         </div>
+      </div>
+      {/* Chat Room and Language Info */}
+      <div className="w-full flex justify-center items-center py-2 bg-[#232b39] shadow">
+        <span className="text-white text-base font-semibold mr-6">Room: <span className="text-blue-300">{chatSettings.room}</span></span>
+        <span className="text-white text-base font-semibold">Language: <span className="text-blue-300">{chatSettings.languageName}</span></span>
       </div>
 
       <div className="flex flex-col items-center justify-center py-10 px-2 min-h-[calc(100vh-64px)]">
