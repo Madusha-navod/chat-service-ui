@@ -8,6 +8,11 @@ const languages = [
   { name: 'Chinese', code: 'zh' },
   { name: 'German', code: 'de' },
   { name: 'Spanish', code: 'es' },
+  { name: 'Japanese', code: 'ja' },
+  { name: 'Korean', code: 'ko' },
+  { name: 'Russian', code: 'ru' },
+  { name: 'Thai', code: 'th' },
+  { name: 'Turkish', code: 'tr' },
 ];
 const chatRooms = ['Tech'];
 
