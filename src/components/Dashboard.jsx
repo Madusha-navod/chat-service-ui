@@ -24,19 +24,31 @@ const Dashboard = ({ onLogout, user }) => {
     if (settings) {
       // Connect to socket server
       socketRef.current = io(SOCKET_URL);
-      socketRef.current.emit('joinRoom', { room: settings.room, language: settings.language });
+      socketRef.current.emit('joinRoom', {
+        room: settings.room,
+        language: settings.language,
+        first_name: user?.first_name || '',
+        last_name: user?.last_name || ''
+      });
       // Listen for new messages
       socketRef.current.on('newMessage', (data) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: prev.length + 1,
-            text: data.message,
-            sender: data.sender,
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            self: false
-          }
-        ]);
+        // Do not echo own message
+        const sender = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+        const currentUser = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+        if (sender !== currentUser) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: prev.length + 1,
+              text: data.message,
+              sender,
+              first_name: data.first_name,
+              last_name: data.last_name,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              self: false
+            }
+          ]);
+        }
       });
     }
     return () => {
@@ -81,7 +93,13 @@ const Dashboard = ({ onLogout, user }) => {
       // Emit to server
       const settings = JSON.parse(localStorage.getItem('chatSettings'));
       if (socketRef.current && settings) {
-        socketRef.current.emit('sendMessage', { room: settings.room, message: newMessage, language: settings.language });
+        socketRef.current.emit('sendMessage', {
+          room: settings.room,
+          message: newMessage,
+          language: settings.language,
+          first_name: user?.first_name || '',
+          last_name: user?.last_name || ''
+        });
       }
     }
   };
@@ -136,8 +154,9 @@ const Dashboard = ({ onLogout, user }) => {
                       <span className="absolute left-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-white"></span>
                     )}
                     <div className="text-base break-words leading-relaxed">{msg.text}</div>
-                    <div className={`text-xs mt-3 flex items-center gap-2 ${msg.self ? 'justify-end text-blue-100' : 'justify-start text-gray-500'}`}>
-                      {msg.sender} &bull; {msg.time}
+                    <div className={`text-xs mt-3 flex flex-col gap-1 ${msg.self ? 'items-end text-blue-100' : 'items-start text-gray-500'}`}>
+                      <span>{msg.self ? 'You' : `${msg.first_name || ''} ${msg.last_name || ''}`}</span>
+                      <span>{msg.time}</span>
                     </div>
                   </div>
                 </div>
