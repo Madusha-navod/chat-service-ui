@@ -18,6 +18,12 @@ const SignUp = ({ onSignUp, onSwitchToLogin, onSwitchToWelcome }) => {
       setError('All fields are required.');
       return;
     }
+    // Password complexity: min 8 chars, at least one lower, one upper, one number
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError('Password must be at least 8 characters and include lower, upper case letters, and a number.');
+      return;
+    }
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
