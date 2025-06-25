@@ -18,6 +18,7 @@ const Dashboard = ({ onLogout, user }) => {
       JSON.parse(localStorage.getItem('chatSettings')) || { room: '', language: '', languageName: '' }
     );
   });
+  const [file, setFile] = useState(null);
 
   useEffect(() => {
     const settings = JSON.parse(localStorage.getItem('chatSettings'));
@@ -41,6 +42,28 @@ const Dashboard = ({ onLogout, user }) => {
             {
               id: prev.length + 1,
               text: data.message,
+              sender,
+              first_name: data.first_name,
+              last_name: data.last_name,
+              time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              self: false
+            }
+          ]);
+        }
+      });
+      socketRef.current.on('newFile', (data) => {
+        // Do not echo own file
+        const sender = `${data.first_name || ''} ${data.last_name || ''}`.trim();
+        const currentUser = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+        if (sender !== currentUser) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: prev.length + 1,
+              text: '',
+              fileName: data.fileName,
+              fileType: data.fileType,
+              fileData: data.fileData,
               sender,
               first_name: data.first_name,
               last_name: data.last_name,
@@ -104,6 +127,47 @@ const Dashboard = ({ onLogout, user }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleSendFile = async (e) => {
+    e.preventDefault();
+    if (!file) return;
+    const settings = JSON.parse(localStorage.getItem('chatSettings'));
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      if (socketRef.current && settings) {
+        socketRef.current.emit('sendFile', {
+          room: settings.room,
+          language: settings.language,
+          first_name: user?.first_name || '',
+          last_name: user?.last_name || '',
+          fileName: file.name,
+          fileType: file.type,
+          fileData: evt.target.result // base64
+        });
+      }
+      setMessages(prev => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          text: '',
+          fileName: file.name,
+          fileType: file.type,
+          fileData: evt.target.result,
+          sender: 'You',
+          first_name: user?.first_name || '',
+          last_name: user?.last_name || '',
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          self: true
+        }
+      ]);
+      setFile(null);
+    };
+    reader.readAsDataURL(file);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#181e29] via-[#232b39] to-[#1e2746] font-sans">
       {/* App Bar */}
@@ -153,7 +217,19 @@ const Dashboard = ({ onLogout, user }) => {
                     ) : (
                       <span className="absolute left-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-white"></span>
                     )}
-                    <div className="text-base break-words leading-relaxed">{msg.text}</div>
+                    <div className="text-base break-words leading-relaxed">
+                      {msg.text}
+                      {msg.fileName && (
+                        <div className="mt-2">
+                          {msg.fileType && msg.fileType.startsWith('image/') ? (
+                            <img src={msg.fileData} alt={msg.fileName} className="max-w-xs max-h-48 rounded shadow border mb-2" />
+                          ) : null}
+                          <a href={msg.fileData} download={msg.fileName} className="text-blue-500 underline" target="_blank" rel="noopener noreferrer">
+                            {msg.fileName}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                     <div className={`text-xs mt-3 flex flex-col gap-1 ${msg.self ? 'items-end text-blue-100' : 'items-start text-gray-500'}`}>
                       <span>{msg.self ? 'You' : `${msg.first_name || ''} ${msg.last_name || ''}`}</span>
                       <span>{msg.time}</span>
@@ -172,6 +248,26 @@ const Dashboard = ({ onLogout, user }) => {
               placeholder="Type a message..."
               className="flex-1 px-4 py-3 rounded-full border border-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 text-gray-800 bg-white/80 font-medium shadow-sm"
             />
+            <input
+              type="file"
+              onChange={handleFileChange}
+              className="hidden"
+              id="file-upload"
+            />
+            <label htmlFor="file-upload" className="cursor-pointer bg-blue-100 hover:bg-blue-200 text-blue-700 font-semibold px-3 py-2 rounded-full mr-2">
+              📎
+            </label>
+            {file && (
+              <span className="text-sm text-gray-700 bg-gray-100 rounded px-2 py-1 mr-2">{file.name}</span>
+            )}
+            <button
+              type="button"
+              onClick={handleSendFile}
+              disabled={!file}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold transition text-white text-md shadow-md ${file ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700' : 'bg-gray-300 cursor-not-allowed'}`}
+            >
+              Send File
+            </button>
             <button
               type="submit"
               disabled={!newMessage.trim()}
