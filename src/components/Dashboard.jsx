@@ -135,37 +135,83 @@ const Dashboard = ({ onLogout, user }) => {
     e.preventDefault();
     if (!file) return;
     const settings = JSON.parse(localStorage.getItem('chatSettings'));
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      if (socketRef.current && settings) {
-        socketRef.current.emit('sendFile', {
-          room: settings.room,
-          language: settings.language,
-          first_name: user?.first_name || '',
-          last_name: user?.last_name || '',
-          fileName: file.name,
-          fileType: file.type,
-          fileData: evt.target.result // base64
+    // Only handle images for this flow
+    if (file.type && file.type.startsWith('image/')) {
+      const formData = new FormData();
+      formData.append('file', file);
+      try {
+        const response = await fetch('http://localhost:9000/chat/upload', {
+          method: 'POST',
+          body: formData,
         });
-      }
-      setMessages(prev => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          text: '',
-          fileName: file.name,
-          fileType: file.type,
-          fileData: evt.target.result,
-          sender: 'You',
-          first_name: user?.first_name || '',
-          last_name: user?.last_name || '',
-          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          self: true
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+        const imageUrl = data.path;
+        // Emit image URL to chat group
+        if (socketRef.current && settings) {
+          socketRef.current.emit('sendFile', {
+            room: settings.room,
+            language: settings.language,
+            first_name: user?.first_name || '',
+            last_name: user?.last_name || '',
+            fileName: file.name,
+            fileType: file.type,
+            fileData: imageUrl, // Now this is a URL, not base64
+          });
         }
-      ]);
-      setFile(null);
-    };
-    reader.readAsDataURL(file);
+        setMessages(prev => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            text: '',
+            fileName: file.name,
+            fileType: file.type,
+            fileData: imageUrl,
+            sender: 'You',
+            first_name: user?.first_name || '',
+            last_name: user?.last_name || '',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            self: true
+          }
+        ]);
+        setFile(null);
+      } catch (err) {
+        alert('Image upload failed.');
+      }
+    } else {
+      // Fallback: send as base64 for non-images (existing logic)
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        if (socketRef.current && settings) {
+          socketRef.current.emit('sendFile', {
+            room: settings.room,
+            language: settings.language,
+            first_name: user?.first_name || '',
+            last_name: user?.last_name || '',
+            fileName: file.name,
+            fileType: file.type,
+            fileData: evt.target.result // base64
+          });
+        }
+        setMessages(prev => [
+          ...prev,
+          {
+            id: prev.length + 1,
+            text: '',
+            fileName: file.name,
+            fileType: file.type,
+            fileData: evt.target.result,
+            sender: 'You',
+            first_name: user?.first_name || '',
+            last_name: user?.last_name || '',
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            self: true
+          }
+        ]);
+        setFile(null);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -222,6 +268,7 @@ const Dashboard = ({ onLogout, user }) => {
                       {msg.fileName && (
                         <div className="mt-2">
                           {msg.fileType && msg.fileType.startsWith('image/') ? (
+                            // If fileData is a URL, use it directly; if base64, use as before
                             <img src={msg.fileData} alt={msg.fileName} className="max-w-xs max-h-48 rounded shadow border mb-2" />
                           ) : null}
                           <a href={msg.fileData} download={msg.fileName} className="text-blue-500 underline" target="_blank" rel="noopener noreferrer">
