@@ -19,6 +19,14 @@ const Dashboard = ({ onLogout, user }) => {
     );
   });
   const [file, setFile] = useState(null);
+  const [darkMode, setDarkMode] = useState(() => {
+    const stored = localStorage.getItem('darkMode');
+    return stored ? JSON.parse(stored) : false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('darkMode', JSON.stringify(darkMode));
+  }, [darkMode]);
 
   useEffect(() => {
     const settings = JSON.parse(localStorage.getItem('chatSettings'));
@@ -215,10 +223,37 @@ const Dashboard = ({ onLogout, user }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#181e29] via-[#232b39] to-[#1e2746] font-sans">
+    <div className={
+      `${darkMode ? 'dark' : ''} min-h-screen font-sans ` +
+      (darkMode
+        ? 'bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900'
+        : 'bg-gradient-to-br from-[#181e29] via-[#232b39] to-[#1e2746]')
+    }>
       {/* App Bar */}
-      <div className="w-full h-16 bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500 flex items-center px-6 shadow-lg relative z-10">
+      <div className={
+        `w-full h-16 flex items-center px-6 shadow-lg relative z-10 ` +
+        (darkMode
+          ? 'bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900'
+          : 'bg-gradient-to-r from-blue-700 via-blue-600 to-blue-500')
+      }>
         <span className="text-white text-2xl font-bold tracking-wide flex-1">Chat App</span>
+        {/* Dark Mode Toggle */}
+        <button
+          onClick={() => setDarkMode((v) => !v)}
+          className={
+            `mr-4 w-10 h-10 rounded-full flex items-center justify-center border-2 transition ` +
+            (darkMode
+              ? 'bg-gray-700 border-gray-400 text-yellow-300 hover:bg-gray-600'
+              : 'bg-white border-blue-200 text-blue-600 hover:bg-blue-100')
+          }
+          title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+        >
+          {darkMode ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m8.66-13.66l-.71.71M4.05 19.07l-.71.71M21 12h-1M4 12H3m16.66 5.66l-.71-.71M4.05 4.93l-.71-.71M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          ) : (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z" /></svg>
+          )}
+        </button>
         {/* Profile Avatar */}
         <div className="relative" ref={profileMenuRef}>
           <button
@@ -245,19 +280,32 @@ const Dashboard = ({ onLogout, user }) => {
         </div>
       </div>
       {/* Chat Room and Language Info */}
-      <div className="w-full flex justify-center items-center py-2 bg-[#232b39] shadow">
-        <span className="text-white text-base font-semibold mr-6">Room: <span className="text-blue-300">{chatSettings.room}</span></span>
-        <span className="text-white text-base font-semibold">Language: <span className="text-blue-300">{chatSettings.languageName}</span></span>
+      <div className={
+        `w-full flex justify-center items-center py-2 shadow ` +
+        (darkMode ? 'bg-gray-800' : 'bg-[#232b39]')
+      }>
+        <span className="text-white text-base font-semibold mr-6">Room: <span className={darkMode ? 'text-yellow-300' : 'text-blue-300'}>{chatSettings.room}</span></span>
+        <span className="text-white text-base font-semibold">Language: <span className={darkMode ? 'text-yellow-300' : 'text-blue-300'}>{chatSettings.languageName}</span></span>
       </div>
 
       <div className="flex flex-col items-center justify-center py-10 px-2 min-h-[calc(100vh-64px)]">
         <h1 className="text-4xl font-extrabold text-white mb-8 drop-shadow">Group Chat</h1>
-        <div className="bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col min-h-[500px] border border-blue-100" style={{ height: 520 }}>
-          <div className="flex-1 overflow-y-auto p-6" style={{ minHeight: 0 }}>
+        <div className={
+          (darkMode ? 'bg-gray-900/80 backdrop-blur-md border-gray-700' : 'bg-white/80 backdrop-blur-md border-blue-100') +
+          ' rounded-3xl shadow-2xl w-full max-w-3xl flex flex-col min-h-[500px] border'
+        } style={{ height: 520 }}>
+          <div className={
+            'flex-1 overflow-y-auto p-6 ' + (darkMode ? 'text-gray-100' : '')
+          } style={{ minHeight: 0 }}>
             {messages.map((msg) => (
               <div key={msg.id} className={`mb-8 flex ${msg.self ? 'justify-end' : 'justify-start'} w-full`}>
                 <div className="relative flex flex-col w-fit min-w-[120px]">
-                  <div className={`relative max-w-md ${msg.self ? 'bg-gradient-to-br from-blue-500 to-blue-400 text-white rounded-2xl rounded-br-none' : 'bg-white text-gray-900 rounded-2xl rounded-bl-none border border-blue-100'} px-6 py-4 shadow-md font-medium`}>
+                  <div className={
+                    `relative max-w-md px-6 py-4 shadow-md font-medium ` +
+                    (msg.self
+                      ? (darkMode ? 'bg-gradient-to-br from-yellow-600 to-yellow-500 text-white rounded-2xl rounded-br-none' : 'bg-gradient-to-br from-blue-500 to-blue-400 text-white rounded-2xl rounded-br-none')
+                      : (darkMode ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-none border border-gray-700' : 'bg-white text-gray-900 rounded-2xl rounded-bl-none border border-blue-100'))
+                  }>
                     {msg.self ? (
                       <span className="absolute right-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-blue-400"></span>
                     ) : (
@@ -277,7 +325,7 @@ const Dashboard = ({ onLogout, user }) => {
                         </div>
                       )}
                     </div>
-                    <div className={`text-xs mt-3 flex flex-col gap-1 ${msg.self ? 'items-end text-blue-100' : 'items-start text-gray-500'}`}>
+                    <div className={`text-xs mt-3 flex flex-col gap-1 ${msg.self ? (darkMode ? 'items-end text-yellow-200' : 'items-end text-blue-100') : (darkMode ? 'items-start text-gray-400' : 'items-start text-gray-500')}`}>
                       <span>{msg.self ? 'You' : `${msg.first_name || ''} ${msg.last_name || ''}`}</span>
                       <span>{msg.time}</span>
                     </div>
@@ -287,7 +335,10 @@ const Dashboard = ({ onLogout, user }) => {
             ))}
             <div ref={messagesEndRef} />
           </div>
-          <form onSubmit={handleSendMessage} className="border-t border-blue-100/60 bg-white/70 backdrop-blur flex items-center gap-2 px-4 py-3 rounded-b-3xl">
+          <form onSubmit={handleSendMessage} className={
+            `border-t flex items-center gap-2 px-4 py-3 rounded-b-3xl ` +
+            (darkMode ? 'border-gray-700 bg-gray-900/70' : 'border-blue-100/60 bg-white/70 backdrop-blur')
+          }>
             <input
               type="text"
               value={newMessage}
