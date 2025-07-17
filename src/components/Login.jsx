@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LOGIN_URL, RESET_PASSWORD_URL } from '../constants';
+import { LOGIN_URL, RESET_PASSWORD_URL, PASSWORD_REGEX } from '../constants';
 
 const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
   const [email, setEmail] = useState('');
@@ -11,6 +11,7 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
   const [resetCurrentPassword, setResetCurrentPassword] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +46,11 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
           <form className="w-full" onSubmit={async (e) => {
             e.preventDefault();
             setResetMessage('');
+            setResetError('');
+            if (!PASSWORD_REGEX.test(resetNewPassword)) {
+              setResetError('Password must be at least 8 characters and include lower, upper case letters, and a number.');
+              return;
+            }
             try {
               const response = await fetch(RESET_PASSWORD_URL, {
                 method: 'POST',
@@ -109,6 +115,11 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
                 className="w-full px-4 py-2 rounded-md bg-[#31394a] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 border-none"
               />
             </div>
+            {resetError && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-md">
+                <p className="text-red-400 text-sm">{resetError}</p>
+              </div>
+            )}
             {resetMessage && (
               <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-md">
                 <p className="text-blue-400 text-sm">{resetMessage}</p>
