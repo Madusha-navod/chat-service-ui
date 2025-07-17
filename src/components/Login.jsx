@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LOGIN_URL } from '../constants';
 
 const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,7 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch('http://localhost:9000/chat/users/login', {
+      const response = await fetch(LOGIN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

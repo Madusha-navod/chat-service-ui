@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SOCKET_URL } from '../constants';
+import { SOCKET_URL, CHAT_UPLOAD_URL } from '../constants';
 import { io } from 'socket.io-client';
 
 const initialMessages = [
@@ -140,7 +140,7 @@ const Dashboard = ({ onLogout, user }) => {
       const formData = new FormData();
       formData.append('file', file);
       try {
-        const response = await fetch('http://localhost:9000/chat/upload', {
+        const response = await fetch(CHAT_UPLOAD_URL, {
           method: 'POST',
           body: formData,
         });
