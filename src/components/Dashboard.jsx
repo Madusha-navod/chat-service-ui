@@ -222,6 +222,17 @@ const Dashboard = ({ onLogout, user }) => {
     }
   };
 
+  // Helper to highlight @mentions
+  function renderMessageText(text, darkMode) {
+    if (!text) return null;
+    return text.split(/(\s+)/).map((part, i) => {
+      if (/^@\w+/.test(part)) {
+        return <span key={i} className={darkMode ? 'bg-yellow-700 text-yellow-200 px-1 rounded' : 'bg-blue-100 text-blue-700 px-1 rounded'}>{part}</span>;
+      }
+      return part;
+    });
+  }
+
   return (
     <div className={
       `${darkMode ? 'dark' : ''} min-h-screen font-sans ` +
@@ -312,7 +323,7 @@ const Dashboard = ({ onLogout, user }) => {
                       <span className="absolute left-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-white"></span>
                     )}
                     <div className="text-base break-words leading-relaxed">
-                      {msg.text}
+                      {renderMessageText(msg.text, darkMode)}
                       {msg.fileName && (
                         <div className="mt-2">
                           {msg.fileType && msg.fileType.startsWith('image/') ? (
