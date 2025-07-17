@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
-import { LOGIN_URL } from '../constants';
+import { LOGIN_URL, RESET_PASSWORD_URL } from '../constants';
 
 const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showReset, setShowReset] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCurrentPassword, setResetCurrentPassword] = useState('');
+  const [resetNewPassword, setResetNewPassword] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,6 +41,95 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
     <div className="min-h-screen flex items-center justify-center bg-[#181e29]">
       <div className="bg-[#232b39] rounded-2xl shadow-lg p-10 w-full max-w-md flex flex-col items-center">
         <h2 className="text-3xl font-bold text-blue-400 mb-8">Login</h2>
+        {showReset ? (
+          <form className="w-full" onSubmit={async (e) => {
+            e.preventDefault();
+            setResetMessage('');
+            try {
+              const response = await fetch(RESET_PASSWORD_URL, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'accept': 'application/json',
+                },
+                body: JSON.stringify({ email: resetEmail, currentPassword: resetCurrentPassword, newPassword: resetNewPassword }),
+              });
+              if (!response.ok) {
+                const errorData = await response.json();
+                setResetMessage(errorData.message || 'Failed to reset password.');
+                return;
+              }
+              setResetMessage('Password has been reset successfully. You can now log in with your new password.');
+              setResetEmail('');
+              setResetCurrentPassword('');
+              setResetNewPassword('');
+            } catch (err) {
+              setResetMessage('Network error. Please try again later.');
+            }
+          }}>
+            <div className="mb-4">
+              <label htmlFor="resetEmail" className="block text-white text-sm font-semibold mb-1">Email</label>
+              <input
+                id="resetEmail"
+                name="resetEmail"
+                type="email"
+                autoComplete="email"
+                required
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="Enter your email"
+                className="w-full px-4 py-2 rounded-md bg-[#31394a] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 border-none"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="resetCurrentPassword" className="block text-white text-sm font-semibold mb-1">Current Password</label>
+              <input
+                id="resetCurrentPassword"
+                name="resetCurrentPassword"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={resetCurrentPassword}
+                onChange={(e) => setResetCurrentPassword(e.target.value)}
+                placeholder="Enter your current password"
+                className="w-full px-4 py-2 rounded-md bg-[#31394a] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 border-none"
+              />
+            </div>
+            <div className="mb-4">
+              <label htmlFor="resetNewPassword" className="block text-white text-sm font-semibold mb-1">New Password</label>
+              <input
+                id="resetNewPassword"
+                name="resetNewPassword"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={resetNewPassword}
+                onChange={(e) => setResetNewPassword(e.target.value)}
+                placeholder="Enter your new password"
+                className="w-full px-4 py-2 rounded-md bg-[#31394a] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400 border-none"
+              />
+            </div>
+            {resetMessage && (
+              <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/50 rounded-md">
+                <p className="text-blue-400 text-sm">{resetMessage}</p>
+              </div>
+            )}
+            <button
+              type="submit"
+              className="w-full py-3 rounded-md bg-blue-500 hover:bg-blue-600 text-white font-semibold text-lg transition mb-4"
+            >
+              Reset Password
+            </button>
+            <button
+              type="button"
+              className="w-full py-2 rounded-md bg-gray-500 hover:bg-gray-600 text-white font-semibold text-md transition"
+              onClick={() => { setShowReset(false); setResetMessage(''); }}
+            >
+              Back to Login
+            </button>
+          </form>
+        ) : (
+        <>
         <form className="w-full" onSubmit={handleSubmit}>
           {error && (
             <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-md">
@@ -92,6 +186,13 @@ const Login = ({ onLogin, onSwitchToSignUp, onSwitchToWelcome }) => {
             Login
           </button>
         </form>
+        <button
+          className="text-blue-300 text-sm hover:underline mb-2"
+          onClick={() => { setShowReset(true); setResetEmail(''); setResetCurrentPassword(''); setResetNewPassword(''); setResetMessage(''); }}
+        >
+          Reset Password
+        </button>
+        </>) }
         <div className="text-center text-sm mb-2">
           <span className="text-blue-300">Don't have an account?</span>
           <button className="ml-1 text-white font-semibold hover:underline" onClick={onSwitchToSignUp}>Sign Up</button>
