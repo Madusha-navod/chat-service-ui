@@ -41,7 +41,6 @@ const Dashboard = ({ onLogout, user }) => {
       });
       // Listen for new messages
       socketRef.current.on('newMessage', (data) => {
-        // Do not echo own message
         const sender = `${data.first_name || ''} ${data.last_name || ''}`.trim();
         const currentUser = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
         if (sender !== currentUser) {
@@ -54,9 +53,23 @@ const Dashboard = ({ onLogout, user }) => {
               first_name: data.first_name,
               last_name: data.last_name,
               time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-              self: false
+              self: false,
+              sentiment_score: data.sentiment_score ?? null
             }
           ]);
+        } else {
+          // Update the last message (optimistically sent) with the sentiment score from the server
+          setMessages((prev) => {
+            const lastIdx = prev.length - 1;
+            if (lastIdx < 0) return prev;
+            const lastMsg = prev[lastIdx];
+            // Optionally, check text match or other fields for more robust matching
+            if (lastMsg.self && lastMsg.text === data.message && lastMsg.sentiment_score === null) {
+              const updatedMsg = { ...lastMsg, sentiment_score: data.sentiment_score ?? null };
+              return [...prev.slice(0, lastIdx), updatedMsg];
+            }
+            return prev;
+          });
         }
       });
       socketRef.current.on('newFile', (data) => {
@@ -107,17 +120,27 @@ const Dashboard = ({ onLogout, user }) => {
     };
   }, [showProfileMenu]);
 
+  // Helper to map sentiment score to label
+  function getSentimentLabel(score) {
+    if (score === null || score === undefined) return { label: '', score: null };
+    if (score > 1) return { label: '🙂 Positive', score };
+    if (score < -1) return { label: '🙁 Negative', score };
+    return { label: '😐 Neutral', score };
+  }
+
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (newMessage.trim()) {
       const now = new Date();
       const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // We'll optimistically set sentiment_score to null until server responds
       const userMsg = {
         id: messages.length + 1,
         text: newMessage,
         sender: 'You',
         time,
-        self: true
+        self: true,
+        sentiment_score: null // placeholder until server returns
       };
       setMessages(prev => [...prev, userMsg]);
       setNewMessage('');
@@ -309,40 +332,56 @@ const Dashboard = ({ onLogout, user }) => {
             'flex-1 overflow-y-auto p-6 ' + (darkMode ? 'text-gray-100' : '')
           } style={{ minHeight: 0 }}>
             {messages.map((msg) => (
-              <div key={msg.id} className={`mb-8 flex ${msg.self ? 'justify-end' : 'justify-start'} w-full`}>
-                <div className="relative flex flex-col w-fit min-w-[120px]">
-                  <div className={
-                    `relative max-w-md px-6 py-4 shadow-md font-medium ` +
-                    (msg.self
-                      ? (darkMode ? 'bg-gradient-to-br from-yellow-600 to-yellow-500 text-white rounded-2xl rounded-br-none' : 'bg-gradient-to-br from-blue-500 to-blue-400 text-white rounded-2xl rounded-br-none')
-                      : (darkMode ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-none border border-gray-700' : 'bg-white text-gray-900 rounded-2xl rounded-bl-none border border-blue-100'))
-                  }>
-                    {msg.self ? (
-                      <span className="absolute right-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-blue-400"></span>
-                    ) : (
-                      <span className="absolute left-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-white"></span>
-                    )}
-                    <div className="text-base break-words leading-relaxed">
-                      {renderMessageText(msg.text, darkMode)}
-                      {msg.fileName && (
-                        <div className="mt-2">
-                          {msg.fileType && msg.fileType.startsWith('image/') ? (
-                            // If fileData is a URL, use it directly; if base64, use as before
-                            <img src={msg.fileData} alt={msg.fileName} className="max-w-xs max-h-48 rounded shadow border mb-2" />
-                          ) : null}
-                          <a href={msg.fileData} download={msg.fileName} className="text-blue-500 underline" target="_blank" rel="noopener noreferrer">
-                            {msg.fileName}
-                          </a>
-                        </div>
+              <>
+                <div key={msg.id} className={`mb-8 flex ${msg.self ? 'justify-end' : 'justify-start'} w-full`}>
+                  <div className="relative flex flex-col w-fit min-w-[120px]">
+                    <div className={
+                      `relative max-w-md px-6 py-4 shadow-md font-medium ` +
+                      (msg.self
+                        ? (darkMode ? 'bg-gradient-to-br from-yellow-600 to-yellow-500 text-white rounded-2xl rounded-br-none' : 'bg-gradient-to-br from-blue-500 to-blue-400 text-white rounded-2xl rounded-br-none')
+                        : (darkMode ? 'bg-gray-800 text-gray-100 rounded-2xl rounded-bl-none border border-gray-700' : 'bg-white text-gray-900 rounded-2xl rounded-bl-none border border-blue-100'))
+                    }>
+                      {msg.self ? (
+                        <span className="absolute right-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-l-8 border-l-blue-400"></span>
+                      ) : (
+                        <span className="absolute left-0 top-4 w-0 h-0 border-t-8 border-t-transparent border-b-8 border-b-transparent border-r-8 border-r-white"></span>
                       )}
-                    </div>
-                    <div className={`text-xs mt-3 flex flex-col gap-1 ${msg.self ? (darkMode ? 'items-end text-yellow-200' : 'items-end text-blue-100') : (darkMode ? 'items-start text-gray-400' : 'items-start text-gray-500')}`}>
-                      <span>{msg.self ? 'You' : `${msg.first_name || ''} ${msg.last_name || ''}`}</span>
-                      <span>{msg.time}</span>
+                      <div className="text-base break-words leading-relaxed">
+                        {renderMessageText(msg.text, darkMode)}
+                        {msg.fileName && (
+                          <div className="mt-2">
+                            {msg.fileType && msg.fileType.startsWith('image/') ? (
+                              // If fileData is a URL, use it directly; if base64, use as before
+                              <img src={msg.fileData} alt={msg.fileName} className="max-w-xs max-h-48 rounded shadow border mb-2" />
+                            ) : null}
+                            <a href={msg.fileData} download={msg.fileName} className="text-blue-500 underline" target="_blank" rel="noopener noreferrer">
+                              {msg.fileName}
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                      <div className={
+                        `text-xs mt-3 flex flex-row justify-between items-center gap-4 ` +
+                        (msg.self ? (darkMode ? 'text-yellow-200' : 'text-blue-100') : (darkMode ? 'text-gray-400' : 'text-gray-500'))
+                      }>
+                        <span className="text-xs font-light opacity-80">{msg.time}</span>
+                        {msg.sentiment_score !== null && msg.sentiment_score !== undefined && (
+                          <span className="ml-2 font-semibold px-2 py-0.5 rounded-full bg-white/20 dark:bg-gray-700/40 text-base flex items-center" style={{minWidth: 80, justifyContent: 'flex-end'}}>{getSentimentLabel(msg.sentiment_score).label}</span>
+                        )}
+                      </div>
+                      <div className={`text-xs flex flex-col gap-1 mt-1 ${msg.self ? (darkMode ? 'items-end' : 'items-end') : (darkMode ? 'items-start' : 'items-start')}`}>
+                        <span className={
+                          msg.self
+                            ? (darkMode ? 'text-yellow-300 font-bold text-[13px]' : 'text-blue-700 font-bold text-[13px]')
+                          : (darkMode ? 'text-blue-200 font-bold text-[13px]' : 'text-blue-700 font-bold text-[13px]')
+                        }>
+                          {msg.self ? 'You' : `${msg.first_name || ''} ${msg.last_name || ''}`}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </>
             ))}
             <div ref={messagesEndRef} />
           </div>
